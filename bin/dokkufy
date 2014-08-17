@@ -88,7 +88,7 @@ Commander.configure do
   end
 
   command :'app:current' do |c|
-    c.syntax = 'dokkufy app:current <app>'
+    c.syntax = 'dokkufy app:current [<app>]'
     c.description = 'Sets or retrieves the current dokku app'
     c.action do |args, options|
       if args.empty?
@@ -106,7 +106,7 @@ Commander.configure do
   end
 
   command :'app:remove' do |c|
-    c.syntax = 'dokkufy app:remove <app> <app> <app>'
+    c.syntax = 'dokkufy app:remove [<app> <app> ...]'
     c.description = 'Remove a dokku app (this does not delete the app from your server)'
     c.action do |args, options|
       if args.count >= 1
