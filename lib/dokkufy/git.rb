@@ -76,13 +76,13 @@ module Dokkufy
       ''
     end
 
-    private
-
     def current_remote
       current_app.strip.split(' ').last
     rescue
       nil
     end
+
+    private
 
     def add_git_remote
       puts 'Adding remote to git...'

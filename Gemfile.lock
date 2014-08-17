@@ -1,7 +1,7 @@
 PATH
   remote: .
   specs:
-    dokkufy (0.1.2)
+    dokkufy (0.1.4)
       commander
       hpricot
       terminal-table

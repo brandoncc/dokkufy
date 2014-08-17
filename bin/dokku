@@ -7,8 +7,8 @@ if ['-v', '--version', '--help'].include?(ARGV[0]) || ARGV.empty?
 end
 
 git = Dokkufy::Git.new
-if !git.dokku_remote_present?
-  puts "No Dokku remote found. Either run `dokkufy app` to create one, or run `dokkufy app:list` and `dokkufy app:current` to specify the current remote."
+if !git.current_remote
+  puts "No current dokku remote found. Either run `dokkufy app` to create one, or run `dokkufy app:list` and `dokkufy app:current` to specify the current remote."
 else
-  Dokkufy::Dokku.new(git.dokku_remote).run(ARGV)
+  Dokkufy::Dokku.new(git.current_remote).run(ARGV)
 end
