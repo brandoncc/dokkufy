@@ -70,6 +70,12 @@ module Dokkufy
       false
     end
 
+    def get_app_name(app)
+      app.split(' ').first.gsub(/^\*/, '')
+    rescue
+      ''
+    end
+
     private
 
     def current_remote
@@ -116,12 +122,6 @@ module Dokkufy
         demoted.split(' ').first == @current_app ? '*' + demoted : demoted
       end
       self.dokku_apps = updated_apps
-    end
-
-    def get_app_name(app)
-      app.split(' ').first.gsub(/^\*/, '')
-    rescue
-      ''
     end
 
   end

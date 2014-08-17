@@ -117,5 +117,23 @@ Commander.configure do
     end
   end
 
+  command :'git:push' do |c|
+    c.syntax = 'dokkufy git:push [<app> <app> ...]'
+    c.description = 'Push the current HEAD branch to the current dokku app. If app(s) are provided, the code is pushed to them instead.'
+    c.action do |args, options|
+      if args.count > 0
+        args.each do |app_name|
+          puts "Pushing code to #{app_name}."
+          `git push #{app_name} master`
+        end
+      else
+        git = Dokkufy::Git.new
+        current_app = git.get_app_name(git.current_app)
+        puts "Pushing code to #{current_app}."
+        `git push #{current_app} master`
+      end
+    end
+  end
+
   default_command :help
 end
