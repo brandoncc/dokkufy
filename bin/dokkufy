@@ -60,17 +60,14 @@ Commander.configure do
     c.description = "Binds this app to a Dokku instance through git and a config file"
     c.action do |args, options|
       if args.empty?
-        git = Dokkufy::Git.new
-        if git.dokku_remote_present?
-          args = [git.dokku_remote]
-        else
-          hostname    = ask('Server hostname or IP: ')
-          username    = ask('Dokku username on server [dokku]: ')
-          username    = "dokku" if username.strip == ""
-          args = [hostname, username]
-        end
+        hostname    = ask('Server hostname or IP: ')
+        username    = ask('Dokku username on server [dokku]: ')
+        username    = "dokku" if username.strip == ""
+        remote_name = ask("Dokkufy app name (for creating multiple dokku apps) [#{File.basename(Dir.getwd)}]: ")
+        remote_name = "#{File.basename(Dir.getwd)}" if remote_name.strip == ""
+        args        = [hostname, username]
       end
-      Dokkufy::App.new(args).dokkufy
+      Dokkufy::App.new([*args, remote_name]).dokkufy
     end
   end
 
@@ -79,6 +76,44 @@ Commander.configure do
     c.description = "Undokkufies this app"
     c.action do |args, options|
       Dokkufy::Git.new.clear
+    end
+  end
+
+  command :'app:list' do |c|
+    c.syntax = 'dokkufy app:list'
+    c.description = 'Retrieves a list of available dokku apps for this application'
+    c.action do |args, options|
+      Dokkufy::Git.new.app_list
+    end
+  end
+
+  command :'app:current' do |c|
+    c.syntax = 'dokkufy app:current <app>'
+    c.description = 'Sets or retrieves the current dokku app'
+    c.action do |args, options|
+      if args.empty?
+        current_app = Dokkufy::Git.new.current_app
+
+        if current_app
+          puts current_app
+        else
+          puts 'There is no current dokku app specified. Either run `dokkufy app` to create one, or run `dokkufy app:list` and `dokkufy app:current` to specify the current remote.'
+        end
+      else
+        Dokkufy::Git.new.current_app = args.first
+      end
+    end
+  end
+
+  command :'app:remove' do |c|
+    c.syntax = 'dokkufy app:remove <app> <app> <app>'
+    c.description = 'Remove a dokku app (this does not delete the app from your server)'
+    c.action do |args, options|
+      if args.count >= 1
+        args.each { |arg| Dokkufy::Git.new.remove_app(arg) }
+      else
+        puts 'You must specify one or more apps to remove'
+      end
     end
   end
 

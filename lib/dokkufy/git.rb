@@ -6,45 +6,122 @@ module Dokkufy
     end
 
     def dokku_remote
-      @dokku_remote ||= git_remote || dokkufile_remote
+      @dokku_remote ||= current_remote
     end
 
-    def dokku_remote=(remote)
-      @dokku_remote = remote
-      set_git_remote
-      set_dokkufile_remote
+    def add_app(repo)
+      @app_name = repo.strip.split(':').last
+      @dokku_remote = repo
+      add_git_remote
+      add_dokkufile_remote
     end
 
     def clear
-      `rm .dokkurc`
-      `git remote remove dokku`
+      apps = dokku_apps
+
+      if dokku_apps.count > 0 || File.exists?('.dokkurc')
+        puts 'Removing git remotes...'
+        apps.each do |app|
+          `git remote remove #{get_app_name(app)}`
+        end
+
+        puts 'Removing .dokkurc file...'
+        `rm .dokkurc`
+      else
+        puts "Sorry, there are no apps for me to clear"
+      end
+    end
+
+    def current_app
+      app = dokku_apps.select { |app| app =~ /^\*/ }.first
+      app[1..-1] if app
+    end
+
+    def current_app=(app)
+      @current_app = app
+      set_current_app
+    end
+
+    def app_list
+      puts 'This is a list of current dokku apps for this application'
+      puts '* = current app'
+      puts
+      puts dokku_apps.map { |app| app.split(' ').first }
+    end
+
+    def remove_app(app_name)
+      if app_exists?(app_name)
+        puts "Removing dokku app: #{app_name}"
+
+        modified_app_list = dokku_apps.select { |app| !(app =~ /^\*?#{Regexp.quote(app_name)}/) }
+        self.dokku_apps = modified_app_list
+
+        puts 'Removing git remote'
+        `git remote remove #{app_name}`
+      else
+        puts "Sorry, there is no app named #{app_name} in your .dokkurc file"
+      end
+    end
+
+    def app_exists?(app_name)
+      current_apps = dokku_apps.map { |app| app.split(' ').last }
+      current_apps.select { |app| app.strip.split(':').last == app_name }.count > 0
+    rescue
+      false
     end
 
     private
 
-    def git_remote
-      output = `git remote -v`
-      output.lines.each do |line|
-        return line.split(" ")[1] if line.include?("dokku@")
-      end
-      nil
-    end
-
-    def dokkufile_remote
-      output = File.open(".dokkurc").read
-      return output.strip unless output.empty?
+    def current_remote
+      current_app.strip.split(' ').last
     rescue
       nil
     end
 
-    def set_git_remote
-      puts "Setting git remote"
-      `git remote add dokku #{@dokku_remote}`
+    def add_git_remote
+      puts 'Adding remote to git...'
+      `git remote add #{@app_name} #{@dokku_remote}`
     end
 
-    def set_dokkufile_remote
+    def add_dokkufile_remote
+      if dokku_apps.select { |app| app.strip =~ /Regexp.quote(@dokku_remote)/ }.empty?
+        self.dokku_apps = dokku_apps << "#{@app_name} #{@dokku_remote}"
+      else
+        puts 'That remote already exists'
+      end
+
+      @current_app = @app_name
+      set_current_app
+    end
+
+    def dokku_apps
+      @dokku_apps ||= File.open(".dokkurc").map do |line|
+        line.strip
+      end
+    rescue
+      []
+    end
+
+    def dokku_apps=(apps)
+      @dokku_apps = apps
+      File.open('.dokkurc', 'w') do |f|
+        apps.each { |app| f.write(app + "\n") }
+      end
+    end
+
+    def set_current_app
       puts "Writing .dokkurc"
-      `echo #{@dokku_remote} > .dokkurc`
+      updated_apps = dokku_apps.map do |app|
+        demoted = app.gsub(/^\*/, '')
+        demoted.split(' ').first == @current_app ? '*' + demoted : demoted
+      end
+      self.dokku_apps = updated_apps
+    end
+
+    def get_app_name(app)
+      app.split(' ').first.gsub(/^\*/, '')
+    rescue
+      ''
     end
 
   end

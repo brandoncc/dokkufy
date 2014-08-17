@@ -8,7 +8,7 @@ end
 
 git = Dokkufy::Git.new
 if !git.dokku_remote_present?
-  puts "No Dokku remote found. Run `dokkufy app` first."
+  puts "No Dokku remote found. Either run `dokkufy app` to create one, or run `dokkufy app:list` and `dokkufy app:current` to specify the current remote."
 else
   Dokkufy::Dokku.new(git.dokku_remote).run(ARGV)
 end
