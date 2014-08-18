@@ -92,10 +92,11 @@ Commander.configure do
     c.description = 'Sets or retrieves the current dokku app'
     c.action do |args, options|
       if args.empty?
-        current_app = Dokkufy::Git.new.current_app
+        git = Dokkufy::Git.new
+        current_app = git.current_app
 
         if current_app
-          puts current_app
+          puts "#{current_app} (#{git.current_remote})"
         else
           puts 'There is no current dokku app specified. Either run `dokkufy app` to create one, or run `dokkufy app:list` and `dokkufy app:current` to specify the current remote.'
         end
@@ -121,16 +122,26 @@ Commander.configure do
     c.syntax = 'dokkufy git:push [<app> <app> ...]'
     c.description = 'Push the current HEAD branch to the current dokku app. If app(s) are provided, the code is pushed to them instead.'
     c.action do |args, options|
+      git = Dokkufy::Git.new
+
       if args.count > 0
         args.each do |app_name|
-          puts "Pushing code to #{app_name}."
-          `git push #{app_name} master`
+          if git.app_exists?(app_name)
+            puts "Pushing code to #{app_name}."
+            `git push #{app_name} master`
+          else
+            puts "There is no app named #{app_name} in your .dokkurc file. Use `dokkufy app` to add it."
+          end
         end
       else
-        git = Dokkufy::Git.new
-        current_app = git.get_app_name(git.current_app)
-        puts "Pushing code to #{current_app}."
-        `git push #{current_app} master`
+        current_app = git.current_app
+
+        if current_app
+          puts "Pushing code to #{current_app}."
+          `git push #{current_app} master`
+        else
+          puts 'This app has not been dokkufied. Use `dokkufy app` to get started.'
+        end
       end
     end
   end

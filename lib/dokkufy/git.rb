@@ -33,8 +33,7 @@ module Dokkufy
     end
 
     def current_app
-      app = dokku_apps.select { |app| app =~ /^\*/ }.first
-      app[1..-1] if app
+      current_remote.split(':').last
     end
 
     def current_app=(app)
@@ -46,14 +45,14 @@ module Dokkufy
       puts 'This is a list of current dokku apps for this application'
       puts '* = current app'
       puts
-      puts dokku_apps.map { |app| app.split(' ').first }
+      puts dokku_apps.map { |app| app =~ /^\*/ ? "*#{app.split(':').last}" : app.split(':').last }
     end
 
     def remove_app(app_name)
       if app_exists?(app_name)
         puts "Removing dokku app: #{app_name}"
 
-        modified_app_list = dokku_apps.select { |app| !(app =~ /^\*?#{Regexp.quote(app_name)}/) }
+        modified_app_list = dokku_apps.select { |app| !(app =~ /^\*?.*:#{Regexp.quote(app_name)}$/) }
         self.dokku_apps = modified_app_list
 
         puts 'Removing git remote'
@@ -64,20 +63,26 @@ module Dokkufy
     end
 
     def app_exists?(app_name)
-      current_apps = dokku_apps.map { |app| app.split(' ').last }
-      current_apps.select { |app| app.strip.split(':').last == app_name }.count > 0
+      dokku_apps.select { |app| app.split(':').last == app_name }.count > 0
     rescue
       false
     end
 
     def get_app_name(app)
-      app.split(' ').first.gsub(/^\*/, '')
+      app.split(':').last
     rescue
       ''
     end
 
     def current_remote
-      current_app.strip.split(' ').last
+      if dokku_apps.count == 1
+        dokku_apps.first.gsub(/^\*?/, '')
+      elsif dokku_apps.count > 1
+        app = dokku_apps.select { |app| app =~ /^\*/ }.first
+        app[1..-1] if app
+      else
+        nil
+      end
     rescue
       nil
     end
@@ -91,7 +96,7 @@ module Dokkufy
 
     def add_dokkufile_remote
       if dokku_apps.select { |app| app.strip =~ /Regexp.quote(@dokku_remote)/ }.empty?
-        self.dokku_apps = dokku_apps << "#{@app_name} #{@dokku_remote}"
+        self.dokku_apps = dokku_apps << "#{@dokku_remote}"
       else
         puts 'That remote already exists'
       end
@@ -119,7 +124,7 @@ module Dokkufy
       puts "Writing .dokkurc"
       updated_apps = dokku_apps.map do |app|
         demoted = app.gsub(/^\*/, '')
-        demoted.split(' ').first == @current_app ? '*' + demoted : demoted
+        demoted.split(':').last == @current_app ? '*' + demoted : demoted
       end
       self.dokku_apps = updated_apps
     end
